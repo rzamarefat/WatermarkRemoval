@@ -14,6 +14,12 @@ class SegDatasetMaker:
         self._max_text_length = 15
         self._aug_methods = ["rotate", "void", "sharpness"]
         self._watermark_methods = ["tile", "single"]
+        self.save_mask_images = config["save_mask_images"]
+
+        if self.save_mask_images:
+            if not(os.path.isdir(config["root_to_save_watermarked_images_gt"])):
+                raise RuntimeError("The path you provided for saving watermarked images is not valid.")
+
 
         self._fonts = [
             cv2.FONT_HERSHEY_SIMPLEX,
@@ -60,6 +66,27 @@ class SegDatasetMaker:
     def _generate_rand_font(self):
         return random.sample(self._fonts, 1)[0]
 
+    def _melt_mask_to_edges(self, mask_image):
+        """
+        ref: https://medium.com/@rootaccess/how-to-detect-edges-of-a-mask-in-python-with-opencv-4bcdb3049682
+        """
+        
+        mask_image = mask_image > 128
+
+        mask_image = np.asarray(mask_image[:, :, 0], dtype=np.double)
+        gx, gy = np.gradient(mask_image)
+
+        temp_edge = gy * gy + gx * gx
+        temp_edge
+        temp_edge[temp_edge != 0.0] = 255.0
+        temp_edge = np.asarray(temp_edge, dtype=np.uint8)
+
+        return temp_edge
+
+
+    def _save_seg_bounding_yolo_format(mask_image, abs_path_to_save_seg_bounding):
+        pass
+
 
 
     def _make_single(self):
@@ -86,13 +113,34 @@ class SegDatasetMaker:
         result = cv2.addWeighted(roi, 1, mask_image, 0.6, 0)
 
 
-        random_name = str(uuid1())[0:8]
-        abs_path_watermarked_img = os.path.join(config["root_to_save_watermarked_images"], f"single__{random_name}.jpg")
-        abs_path_watermarked_gt = os.path.join(config["root_to_save_watermarked_images_gt"], f"single__{random_name}.jpg")
+        random_name = f"single__{str(uuid1())[0:8]}.jpg"
+        
+        if self.save_mask_images:
+            try:
+                abs_path_watermarked_gt = os.path.join(config["root_to_save_watermarked_images_gt"], random_name)
+                cv2.imwrite(abs_path_watermarked_gt, mask_image_for_save)
+            except Exception as e:
+                print("Sth went wrong in saving watermarked 'mask' images.The full error")
+                print(e)
+                exit()
+
+            try:    
+                abs_path_watermarked_img = os.path.join(config["root_to_save_watermarked_images"], random_name)
+                cv2.imwrite(abs_path_watermarked_img, result)
+            except Exception as e:
+                print("Sth went wrong in saving watermarked images.The full error")
+                print(e)
+                exit()
         
 
-        cv2.imwrite(abs_path_watermarked_img, result)
-        cv2.imwrite(abs_path_watermarked_gt, mask_image_for_save)
+        abs_path_to_save_seg_bounding = os.path.join(config["root_to_save_yolo_format_seg_boudning"], random_name)
+        self._save_seg_bounding_yolo_format(mask_image, abs_path_to_save_seg_bounding)
+            
+
+
+
+
+        
         
 
 
