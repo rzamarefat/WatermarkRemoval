@@ -15,6 +15,17 @@ class SegDatasetMaker:
         self._aug_methods = ["rotate", "void", "sharpness"]
         self._watermark_methods = ["tile", "single"]
 
+        self._fonts = [
+            cv2.FONT_HERSHEY_SIMPLEX,
+            cv2.FONT_HERSHEY_PLAIN,
+            cv2.FONT_HERSHEY_DUPLEX,
+            cv2.FONT_HERSHEY_COMPLEX,
+            cv2.FONT_HERSHEY_TRIPLEX,
+            cv2.FONT_HERSHEY_COMPLEX_SMALL,
+            cv2.FONT_HERSHEY_SCRIPT_SIMPLEX,
+            cv2.FONT_HERSHEY_SCRIPT_COMPLEX,
+        ]
+
         self._root_to_read_original_images = config["root_to_read_original_images"]
 
         if not(os.path.isdir(self._root_to_read_original_images)):
@@ -42,10 +53,14 @@ class SegDatasetMaker:
         image = cv2.imread(random.sample(self._bg_images_p, 1)[0])
         return image
 
-
     def _select_log(self):
         logo = None
         return logo
+
+    def _generate_rand_font(self):
+        return random.sample(self._fonts, 1)[0]
+
+
 
     def _make_single(self):
         rand_text_length = random.sample([f for f in range(self._max_text_length)], 1)[0]
@@ -57,16 +72,17 @@ class SegDatasetMaker:
 
         black_image = np.zeros_like(rand_bg)
 
-        font = cv2.FONT_HERSHEY_SIMPLEX
-        org = (50, 50)
-        fontScale = 1
+        font = self._generate_rand_font()
+        padding = 20
+        org = (random.randint(1, int(rand_bg.shape[0])) + padding,  random.randint(1, int(rand_bg.shape[1])) - padding)
+        fontScale = random.sample([1, 2, 3, 4, 5], 1)[0]
         color = (255, 0, 0)
         color_for_mask = (255, 255, 255)
         thickness = 2
         mask_image = cv2.putText(black_image, rand_text, org, font, fontScale, color, thickness, cv2.LINE_AA)
         mask_image_for_save = cv2.putText(black_image, rand_text, org, font, fontScale, color_for_mask, thickness, cv2.LINE_AA)
+        mask_image_for_save = np.where(mask_image_for_save > 127.5, 255, 0)
         roi = rand_bg
-
         result = cv2.addWeighted(roi, 1, mask_image, 0.6, 0)
 
 
