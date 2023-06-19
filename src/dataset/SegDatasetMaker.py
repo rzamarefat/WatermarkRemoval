@@ -84,10 +84,14 @@ class SegDatasetMaker:
         return temp_edge
 
 
-    def _save_seg_bounding_yolo_format(mask_image, abs_path_to_save_seg_bounding):
-        pass
-
-
+    def _save_seg_bounding_yolo_format(self, mask_image, abs_path_to_save_seg_bounding):
+        melted_mask_image = self._melt_mask_to_edges(mask_image)
+        
+        for r in range(melted_mask_image.shape[0]):
+            for c in range(melted_mask_image.shape[1]):
+                if melted_mask_image[r, c] == 255:
+                    
+                    
 
     def _make_single(self):
         rand_text_length = random.sample([f for f in range(self._max_text_length)], 1)[0]
@@ -113,34 +117,28 @@ class SegDatasetMaker:
         result = cv2.addWeighted(roi, 1, mask_image, 0.6, 0)
 
 
-        random_name = f"single__{str(uuid1())[0:8]}.jpg"
+        random_name = f"single__{str(uuid1())[0:8]}"
         
-        if self.save_mask_images:
-            try:
-                abs_path_watermarked_gt = os.path.join(config["root_to_save_watermarked_images_gt"], random_name)
-                cv2.imwrite(abs_path_watermarked_gt, mask_image_for_save)
-            except Exception as e:
-                print("Sth went wrong in saving watermarked 'mask' images.The full error")
-                print(e)
-                exit()
+        # if self.save_mask_images:
+        #     try:
+        #         abs_path_watermarked_gt = os.path.join(config["root_to_save_watermarked_images_gt"], random_name + ".jpg")
+        #         cv2.imwrite(abs_path_watermarked_gt, mask_image_for_save)
+        #     except Exception as e:
+        #         print("Sth went wrong in saving watermarked 'mask' images.The full error")
+        #         print(e)
+        #         exit()
 
-            try:    
-                abs_path_watermarked_img = os.path.join(config["root_to_save_watermarked_images"], random_name)
-                cv2.imwrite(abs_path_watermarked_img, result)
-            except Exception as e:
-                print("Sth went wrong in saving watermarked images.The full error")
-                print(e)
-                exit()
+        # try:    
+        #     abs_path_watermarked_img = os.path.join(config["root_to_save_watermarked_images"], random_name + ".jpg")
+        #     cv2.imwrite(abs_path_watermarked_img, result)
+        # except Exception as e:
+        #     print("Sth went wrong in saving watermarked images.The full error")
+        #     print(e)
+        #     exit()
         
 
-        abs_path_to_save_seg_bounding = os.path.join(config["root_to_save_yolo_format_seg_boudning"], random_name)
+        abs_path_to_save_seg_bounding = os.path.join(config["root_to_save_yolo_format_seg_boudning"], random_name + ".txt")
         self._save_seg_bounding_yolo_format(mask_image, abs_path_to_save_seg_bounding)
-            
-
-
-
-
-        
         
 
 
@@ -149,7 +147,7 @@ class SegDatasetMaker:
 
     def make(self):
         
-        print("Making data")
+        print("Making data...")
         for i in range(config["num_required_images"]):
             self._make_single()
             self._make_tile()
