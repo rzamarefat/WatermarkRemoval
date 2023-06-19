@@ -3,7 +3,10 @@ import numpy as np
 from config import config
 import random
 from glob import glob
+from tqdm import tqdm
 import os
+from uuid import uuid1
+
 
 class SegDatasetMaker:
     def __init__(self):
@@ -39,33 +42,12 @@ class SegDatasetMaker:
         image = cv2.imread(random.sample(self._bg_images_p, 1)[0])
         return image
 
-    def _make_mask_image(self, bg_image, watermark_method, texts):
-        black_image = np.zeros_like(bg_image)
-
-
-        if watermark_method == "tile":
-            mask_images = []
-            for text in texts:
-                font = cv2.FONT_HERSHEY_SIMPLEX
-                org = (50, 50)
-                fontScale = 1
-                color = (255, 0, 0)
-                thickness = 2
-                maks_image = cv2.putText(black_image, text, org, font, fontScale, color, thickness, cv2.LINE_AA)
-                mask_images.append(mask_images)
-
-            return mask_images
-
-        elif watermark_method == "single":
-            return None 
-
 
     def _select_log(self):
         logo = None
         return logo
 
-    def make(self):
-        rand_watermark_method = random.sample([self._watermark_methods], 1)[0]
+    def _make_single(self):
         rand_text_length = random.sample([f for f in range(self._max_text_length)], 1)[0]
         rand_text = self._generate_text(rand_text_length)
         rand_bg = self._select_random_bg()
@@ -73,8 +55,40 @@ class SegDatasetMaker:
         if config["do_augmentation_on_bgs"]:
             toss_for_aug_method = random.sample([i for i in range(len(self._aug_methods))], 1)[0]
 
+        black_image = np.zeros_like(rand_bg)
 
-        self._make_mask_image(rand_bg, rand_watermark_method, rand_text)
+        font = cv2.FONT_HERSHEY_SIMPLEX
+        org = (50, 50)
+        fontScale = 1
+        color = (255, 0, 0)
+        color_for_mask = (255, 255, 255)
+        thickness = 2
+        mask_image = cv2.putText(black_image, rand_text, org, font, fontScale, color, thickness, cv2.LINE_AA)
+        mask_image_for_save = cv2.putText(black_image, rand_text, org, font, fontScale, color_for_mask, thickness, cv2.LINE_AA)
+        roi = rand_bg
+
+        result = cv2.addWeighted(roi, 1, mask_image, 0.6, 0)
+
+
+        random_name = str(uuid1())[0:8]
+        abs_path_watermarked_img = os.path.join(config["root_to_save_watermarked_images"], f"single__{random_name}.jpg")
+        abs_path_watermarked_gt = os.path.join(config["root_to_save_watermarked_images_gt"], f"single__{random_name}.jpg")
+        
+
+        cv2.imwrite(abs_path_watermarked_img, result)
+        cv2.imwrite(abs_path_watermarked_gt, mask_image_for_save)
+        
+
+
+    def _make_tile(self):
+        pass
+
+    def make(self):
+        
+        print("Making data")
+        for i in range(config["num_required_images"]):
+            self._make_single()
+            self._make_tile()
             
         
 
